@@ -18,18 +18,22 @@ try:
 
     server_socket.connect((ip, port))
     socket_list = [sys.stdin, server_socket]
-    is_run_terminal = True
-    while True:
+    is_open_socket = True
+    while is_open_socket:
         # select() examines the I/O descriptor sets to see if some of their descriptors are ready for reading, writing, or
         # have an exceptional condition pending, respectively.
         read_sockets, write_socket, error_socket = select.select(socket_list, [], [])
         for read_socket in read_sockets:
             if read_socket == server_socket:
-                msg = read_socket.recv(BUFSIZE)
-                print(msg)
+                msg = read_socket.recv(BUFSIZE).decode("utf8")
+                if len(msg):
+                    print(msg)
+                else:
+                    is_open_socket = False
+                    print("[info]: server closed connection, exiting ...")
             else:
-                msg = sys.stdin.readline()
+                msg = sys.stdin.readline()[:-1]
                 server_socket.send(bytes(msg, "utf8"))
     server_socket.close()
-except ConnectionRefusedError:
-    print(f"[{ip}:{port}]: connection refused (possible reason: server is not running)")
+except (ConnectionRefusedError, OSError) as err:
+    print(f"[{ip}:{port}]: {err.strerror}")
