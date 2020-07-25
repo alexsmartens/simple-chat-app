@@ -28,13 +28,13 @@ class ChatRoomServer(Thread):
         self.connection_lim = connection_lim
         self.socket = None
         self.name = name
+        self.is_running = False
         self._init_socket()
         # Dictionary of MessengerClient treads by their name {name: thread}
         self.participants = {}
         # Dictionary of MessengerClient treads by their socket {socket: thread}. These clients do not participate in the
         # chat yet (until they get a name)
         self.noname_participants = {}
-
 
     def _init_socket(self):
         try:
@@ -50,9 +50,10 @@ class ChatRoomServer(Thread):
             self.socket.bind((self.ip, self.port))
             # Listen to maximum of connection_lim active connections
             self.socket.listen(self.connection_lim)
-        except Exception:
+            self.is_running = True
+        except Exception as err:
             # Chat room cannot be created on this
-            raise RuntimeError("> Problem with socket initialization")
+            raise RuntimeError(f"> Problem with socket initialization: {err.strerror}")
 
     def run(self):
         print(f"> Your chat room [{self.name}] is up and running @ {self.ip}:{self.port}...\nType '{QUIT}' if you want to quit.")
@@ -60,11 +61,11 @@ class ChatRoomServer(Thread):
             # Accept new connections to the room
             while True:
                 client_socket, client_ip = self.socket.accept()
-                print(f"> Client {client_ip} connected to the server")
+                print(f"> Client {client_socket} connected to the server")
                 messenger_client = MessengerClient(client_socket, client_ip, self)
                 self.noname_participants[client_socket] = messenger_client
                 messenger_client.start()
-        except socket.error:
+        except ConnectionAbortedError:
             print("> Closed server socket")
 
     def broadcast(self, sender_name, msg):
@@ -72,30 +73,40 @@ class ChatRoomServer(Thread):
             client_thread.socket.send(bytes(f"<{sender_name}> {msg}", "utf8"))
 
     def assign_client_name(self, messenger_client, name):
-        if name is None:
+        if len(name) == 0 or type(name) is not str:
             print(f"> Error: {messenger_client.socket} tried to assign a None name")
-            return None
+            return ""
         else:
             messenger_client.name = name
+            self.broadcast(self.name, f"{messenger_client.name} has joined the chat room")
             del self.noname_participants[messenger_client.socket]
             self.participants[messenger_client.name] = messenger_client
             messenger_client.socket.send(bytes(f"*** Happy chatting {messenger_client.name} ***\nType '{QUIT}' if you want to quit.", "utf8"))
             return messenger_client.name
 
     def quit_client(self, messenger_client):
+        client_name = messenger_client.name
         messenger_client.socket.close()
-        if messenger_client.name is None:
-            del self.noname_participants[messenger_client.socket]
-        else:
+        # Clean up the client's object
+        if len(messenger_client.name):
             del self.participants[messenger_client.name]
+        else:
+            del self.noname_participants[messenger_client.socket]
+        # Broadcast to others that the participant has left if the server is running. Otherwise, the server is
+        # closing all the connections and no broadcasting needed
+        if self.is_running and len(client_name):
+            self.broadcast(self.name, f"{messenger_client.name} has left the chat room")
+            del client_name
 
     def quit_server(self):
         self.broadcast(self.name, "Chat room is about to be terminated...")
+        self.is_running = False
+        self.socket.close()
         # Cleaning up
         messenger_clients = list(self.participants.values()) + list(self.noname_participants.values())
         for messenger_client in messenger_clients:
-            self.quit_client(messenger_client)
-        self.socket.close()
+            # Clients quit themselves on socket closed
+            messenger_client.socket.close()
 
 
 class MessengerClient(Thread):
@@ -103,47 +114,40 @@ class MessengerClient(Thread):
         super().__init__()
         self.socket = client_socket
         self.ip = client_ip
-        self.name = None
+        self.name = ""
         self.chat_room_server = chat_room_server
 
     def run(self):
-        msg2server = self.set_client()
-        while msg2server:
+        msg2server = self.get_client_name()
+        # Set up the player
+        if len(msg2server) != 0 and msg2server != QUIT:
+            self.chat_room_server.assign_client_name(self, msg2server)
+
+        while len(msg2server) != 0 and msg2server != QUIT:
             msg2server = self.receive_msg()
-            if msg2server is None:
-                self.chat_room_server(self.name, msg2server)
+            if len(msg2server) != 0 and msg2server != QUIT:
+                self.chat_room_server.broadcast(self.name, msg2server)
+        self.chat_room_server.quit_client(self)
 
     def receive_msg(self):
-        msg2server = None
         try:
             # recv blocks execution until it receives a message
             msg2server = self.socket.recv(BUFSIZE).decode("utf8")
-            print(self.name)
-            print(self.name is None)
-            print(self.name)
-            print(f"> > {self.ip if self.name is None else self.name}: {msg2server}")
-            if msg2server == QUIT:
-                self.chat_room_server(self)
-                msg2server = None
+            print(f"> <{self.name if len(self.name) else self.ip}> {msg2server}")
         except OSError:
             # Possibly client has left the chat
-            self.chat_room_server(self)
+            msg2server = ""
         finally:
             return msg2server
 
-    def set_client(self):
+    def get_client_name(self):
         # Pick a name
         self.socket.send(bytes("*** Welcome to my simple chat room ***\nType your name and press enter:", "utf8"))
         name = self.receive_msg()
-        while (name is None) or \
-              (name in self.chat_room_server.participants) or \
+        while (name in self.chat_room_server.participants) or \
               (name == self.chat_room_server.name):
             self.socket.send(bytes("*This name already exists, type a different name and press enter:", "utf8"))
             name = self.receive_msg()
-
-        # Set up the player
-        if name:
-            self.chat_room_server.assign_client_name(self, name)
         return name
 
 
