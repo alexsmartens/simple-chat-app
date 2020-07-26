@@ -1,6 +1,4 @@
 import socket
-import select
-import sys
 from threading import Thread
 
 # *** Might be useful later
