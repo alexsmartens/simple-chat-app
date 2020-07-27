@@ -36,7 +36,7 @@ class ChatRoomServer(Thread):
     def _init_socket(self):
         try:
             # Local host ip
-            self.ip = socket.gethostbyname(HOST)
+            self.ip = socket.gethostbyname(self.host)
 
             # AF_INET - iPv4 (Internet address family)
             # SOCK_STREAM - TCP (socket type)
@@ -56,7 +56,7 @@ class ChatRoomServer(Thread):
             raise RuntimeError(f"> Problem with socket initialization: {err.strerror}")
 
     def run(self):
-        print(f"> Your chat room [{self.name}] is up and running @ {self.host}:{self.port}...\nType '{QUIT}' if you want to quit.")
+        print(f"> Your chat room [{self.name}] is up and running @ {self.ip}:{self.port} ({self.host})...\nType '{QUIT}' if you want to quit.")
         try:
             # Accept new connections to the room
             while True:
