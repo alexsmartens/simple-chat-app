@@ -48,6 +48,9 @@ class ChatRoomServer(Thread):
             self.socket.listen(self.connection_lim)
             self.is_running = True
         except Exception as err:
+            print(self.host)
+            print(self.port)
+            print(err)
             # Chat room cannot be created on this
             raise RuntimeError(f"> Problem with socket initialization: {err.strerror}")
 
