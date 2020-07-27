@@ -10,8 +10,6 @@ from threading import Thread
 BUFSIZE = 1024
 # Local host name
 HOST = socket.gethostname()
-# Local host ip
-IP = socket.gethostbyname(HOST)
 PORT = 8081
 # Maximum number of connections open simultaneously by the server
 CONNECTION_LIM = 100
@@ -19,9 +17,9 @@ CONNECTION_LIM = 100
 QUIT = "{q}"
 
 class ChatRoomServer(Thread):
-    def __init__(self, ip=IP, port=PORT, connection_lim=CONNECTION_LIM, name="SERVER"):
+    def __init__(self, host=HOST, port=PORT, connection_lim=CONNECTION_LIM, name="SERVER"):
         super().__init__()
-        self.ip = ip
+        self.host = host
         self.port = port
         self.connection_lim = connection_lim
         self.socket = None
@@ -44,8 +42,8 @@ class ChatRoomServer(Thread):
             # SO_REUSEADDR - whether bind should permit reuse of local socket
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-            # Bind the server socket to the local IP at the specified port
-            self.socket.bind((self.ip, self.port))
+            # Bind the server socket to the host at the specified port
+            self.socket.bind((self.host, self.port))
             # Listen to maximum of connection_lim active connections
             self.socket.listen(self.connection_lim)
             self.is_running = True
@@ -54,7 +52,7 @@ class ChatRoomServer(Thread):
             raise RuntimeError(f"> Problem with socket initialization: {err.strerror}")
 
     def run(self):
-        print(f"> Your chat room [{self.name}] is up and running @ {self.ip}:{self.port}...\nType '{QUIT}' if you want to quit.")
+        print(f"> Your chat room [{self.name}] is up and running @ {self.host}:{self.port}...\nType '{QUIT}' if you want to quit.")
         try:
             # Accept new connections to the room
             while True:

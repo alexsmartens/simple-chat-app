@@ -1,4 +1,4 @@
-import os
+from urllib.parse import urlparse
 import socket
 from flask import Flask, request
 from service.server import ChatRoomServer, QUIT
@@ -12,13 +12,11 @@ app = Flask(__name__)
 def launch_chat_room():
     global chat_room_server
     # Server instance info
-    HOST = socket.gethostname()
-    # Local host ip
-    # IP = socket.gethostbyname(HOST)
+    HOST = urlparse(request.base_url).netloc.split(':')[0]
     PORT = 8081
 
     if chat_room_server is None:
-        chat_room_server = ChatRoomServer()
+        chat_room_server = ChatRoomServer(host=HOST, port=PORT)
         chat_room_server.start()
 
     return \
