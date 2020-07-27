@@ -3,17 +3,17 @@ import sys
 import select
 from server import BUFSIZE
 
-if len(sys.argv) != 3:
-    print("Correct usage: script, IP address, port number")
+if len(sys.argv) != 2 or len(sys.argv[1].split(':')) != 2:
+    print("Correct usage: script, IP:PORT")
     exit()
 
 try:
+    ip, port = sys.argv[1].split(':')
+    port = int(port)
+
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    ip = str(sys.argv[1])
-    port = int(sys.argv[2])
-
     server_socket.connect((ip, port))
+
     socket_list = [sys.stdin, server_socket]
     is_open_socket = True
     while is_open_socket:
@@ -33,4 +33,6 @@ try:
                 server_socket.send(bytes(msg, "utf8"))
     server_socket.close()
 except (ConnectionRefusedError, OSError) as err:
-    print(f"[{ip}:{port}]: {err.strerror}")
+    print(f"[{ip}:{port}] Error: {err.strerror} (possible cause: server is not running or incorrect server info provided)")
+except ValueError as err:
+    print(f"[{ip}:{port}] Error: {err.args[0]} (possible cause: incorrect server info provided)")
