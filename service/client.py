@@ -1,15 +1,12 @@
 import socket
 import sys
 import select
-
+from server import BUFSIZE
 
 if len(sys.argv) != 3:
     print("Correct usage: script, IP address, port number")
     exit()
 
-# Config
-# Maximum buffer size for receiving data from the socket, bytes
-BUFSIZE = 1024
 try:
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
