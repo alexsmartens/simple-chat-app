@@ -61,10 +61,7 @@
                 <button id="registered_btn_send" type="button" class="btn btn-primary"  onclick="send_msg()" disabled>
                     Send<i class="fas fa-paper-plane"></i>
                 </button>
-
-
             </div>
-
 
             <!-- Col 2 -->
             <div class="col-sm-1"></div>
@@ -88,13 +85,12 @@
             integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
-<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.4/socket.io.min.js"></script>-->
 
 
     <!-- Functions -->
     <script>
         let username = ""
-        let socket = io.connect("http://" + document.domain + ":" + location.port )
+        let socket = io.connect(window.location.href)
 
         // Button functions
         $("#noname_form").on("submit", function(e) {
