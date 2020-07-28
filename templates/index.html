@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Simple Chat App</title>
 
-    <!--  External sources -->
+    <!-- External sources -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
           integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css">
@@ -35,20 +35,24 @@
                     <!-- (1) Username -->
                     <label>Username</label>
                     <div class="input-group mb-3">
-                        <input id="noname_input-username"  type="text" class="form-control" aria-label="Username">
+                        <input id="noname_input-username" type="text" class="username form-control" aria-label="Username">
                         <div class="input-group-append">
-                            <button id="noname_btn-log-in" class="btn btn-primary" type="button">Log in</button>
+                            <button id="noname_btn-log-in" class="btn btn-primary" type="button" onclick="login()">
+                                Log in
+                            </button>
                         </div>
                     </div>
 
                     <!-- (2) Message -->
                     <label>Message</label>
                     <div class="input-group mb-3">
-                        <textarea id="registered_input-message"  class="form-control" disabled></textarea>
+                        <textarea id="registered_input-message" class="message form-control" disabled></textarea>
                     </div>
 
                     <!-- (3) Message -->
-                    <button id="registered_btn_send"  type="send" class="btn btn-primary" disabled>Send<i class="fas fa-paper-plane"></i></button>
+                    <button id="registered_btn_send" type="button" class="btn btn-primary" onclick="send_msg()" disabled>
+                        Send<i class="fas fa-paper-plane"></i>
+                    </button>
                 </form>
             </div>
 
@@ -67,10 +71,28 @@
 
     <!--  Bootstrap prerequisites -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
-            integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0="   crossorigin="anonymous"></script>
+            integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
             integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
             integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+
+    <!-- Functions -->
+    <script>
+        let username = ""
+        function login(){
+            username = $("input.username").val();
+            $("[id^=noname]").prop("disabled", true);
+            $("[id^=registered]").removeAttr('disabled');
+            console.log(username)
+        }
+
+        function send_msg(){
+            let message = $("textarea.message").val();
+            console.log(username, message)
+        }
+
+    </script>
+
 </body>
 </html>
