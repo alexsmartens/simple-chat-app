@@ -17,6 +17,13 @@
             border: none;
             color: black;
         }
+        div.chat_msg {
+        /*background-color: #ddd;*/
+        padding: 5px 10px;
+        border-radius: 10px;
+        color: #555;
+        margin-bottom: 5px;
+      }
     </style>
 
 </head>
@@ -31,29 +38,31 @@
         <div class="row d-flex align-items-start">
             <!-- Col 1 -->
             <div class="col-sm-3 > shadow-sm p-3 mb-5 bg-white rounded">
-                <form action="" method="POST">
-                    <!-- (1) Username -->
+                <!-- (1) Username -->
+                <form id="noname_form">
                     <label>Username</label>
                     <div class="input-group mb-3">
                         <input id="noname_input-username" type="text" class="username form-control" aria-label="Username">
                         <div class="input-group-append">
-                            <button id="noname_btn-log-in" class="btn btn-primary" type="button" onclick="login()">
+                            <button id="noname_btn-log-in" class="btn btn-primary" type="submit">
                                 Log in
                             </button>
                         </div>
                     </div>
-
-                    <!-- (2) Message -->
-                    <label>Message</label>
-                    <div class="input-group mb-3">
-                        <textarea id="registered_input-message" class="message form-control" disabled></textarea>
-                    </div>
-
-                    <!-- (3) Message -->
-                    <button id="registered_btn_send" type="button" class="btn btn-primary" onclick="send_msg()" disabled>
-                        Send<i class="fas fa-paper-plane"></i>
-                    </button>
                 </form>
+
+                <!-- (2) Message -->
+                <label>Message</label>
+                <div class="input-group mb-3">
+                    <textarea id="registered_input-msg" class="msg form-control" disabled></textarea>
+                </div>
+
+                <!-- (3) Message -->
+                <button id="registered_btn_send" type="button" class="btn btn-primary"  onclick="send_msg()" disabled>
+                    Send<i class="fas fa-paper-plane"></i>
+                </button>
+
+
             </div>
 
 
@@ -62,8 +71,9 @@
 
             <!-- Col 3-->
             <div class="col-sm-8 shadow p-3 mb-5 bg-white rounded" style="min-height:265px !important">
-                <div id="noMsg">
-                    <h1 style="color: #ccc">No New Messages </h1>
+                <div id="chat">
+                    <h1 id="no-msg-boilerplate" style="color: #ccc">No New Messages </h1>
+                    <div class="msg-wrapper"></div>
                 </div>
             </div>
         </div>
@@ -77,21 +87,68 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
             integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.4/socket.io.min.js"></script>-->
+
+
     <!-- Functions -->
     <script>
         let username = ""
-        function login(){
+        let socket = io.connect("http://" + document.domain + ":" + location.port )
+
+        // Button functions
+        $("#noname_form").on("submit", function(e) {
+            e.preventDefault()
             username = $("input.username").val();
-            $("[id^=noname]").prop("disabled", true);
-            $("[id^=registered]").removeAttr('disabled');
-            console.log(username)
-        }
+            if (username.length) {
+                $("[id^=noname]").prop("disabled", true);
+                $("[id^=registered]").removeAttr('disabled');
 
-        function send_msg(){
-            let message = $("textarea.message").val();
-            console.log(username, message)
-        }
+                let msg2server = {
+                    username: username,
+                };
+                socket.emit("server_receive", msg2server);
+            };
+        });
+        function send_msg() {
+            let msg_element = $("textarea.msg");
+            if (msg_element.val().length) {
+                let msg2server = {
+                    username: username,
+                    msg: msg_element.val(),
+                };
+                socket.emit("server_receive", msg2server);
+                // Empty message field
+                msg_element.val("").focus();
+            };
+        };
 
+        // On first connection
+        socket.on("connect", function () {
+            let msg2server = {
+                data: "new client"
+            };
+            socket.emit("server_receive", msg2server);
+        });
+
+        // Receive a message
+        socket.on("client_receive", function (msg2client, callback) {
+            if (typeof msg2client.username == "string" && typeof msg2client.msg == "string") {
+                // Clean up the initial message
+                if ($("#no-msg-boilerplate").length == 1)
+                    $("#no-msg-boilerplate").remove();
+                // Post a new message
+                $("div.msg-wrapper").append(
+                    "<div class='chat_msg " + (msg2client.username === username ? "bg-primary" : "bg-secondary") + " text-white'><b>"
+                    + msg2client.username + "</b> " + msg2client.msg + "</div>"
+                );
+            };
+            // Call back to the server (just for testing)
+            callback({
+                username: username,
+                new_info: "info",
+            });
+        });
     </script>
 
 </body>

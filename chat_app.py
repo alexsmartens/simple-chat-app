@@ -1,50 +1,26 @@
-from flask import Flask, request
-from service.server import ChatRoomServer, QUIT
-
-chat_room_server = None
+from flask import Flask, render_template
+from flask_socketio import SocketIO
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = "adfd4-lkdf5-636lk-fglkj"
+socketio = SocketIO(app)
 
 
 @app.route("/")
-def launch_chat_room():
-    global chat_room_server
-
-    if chat_room_server is None:
-        chat_room_server = ChatRoomServer()
-        chat_room_server.start()
-
-    # Server info
-    host = chat_room_server.host
-    ip = chat_room_server.ip
-    port = chat_room_server.port
-
-    return \
-        f"<body> \
-            <div> Running the chat room instance  @ {ip}:{port} ({host}) </div> \
-            <div> Press <a href='{request.base_url}terminate'>terminate</a> to terminate the room thread </div> \
-        </body>"
+def load_web_page():
+    return render_template("./index.html")
 
 
-@app.route("/terminate")
-def terminate_chat_room():
-    global chat_room_server
+def client_callback(json):
+    print(f"received new info > {str(json)}")
 
-    if chat_room_server is not None:
-        # Server info
-        host = chat_room_server.host
-        ip = chat_room_server.ip
-        port = chat_room_server.port
-        # Terminate server
-        chat_room_server.quit_server()
-        chat_room_server = None
-        return \
-            f"<body> \
-                <div> Terminated the chat room @ {ip}:{port} ({host}) </div> \
-            </body>"
 
-    else:
-        return \
-            f"<body> \
-                <div> No chat room running, nothing to terminate </div> \
-            </body>"
+@socketio.on("server_receive")
+def connect_new_client(json):
+    print("new_message: " + str(json))
+    # Broadcast a message
+    socketio.emit("client_receive", json, callback=client_callback)
+
+
+if __name__ == '__main__':
+  socketio.run(app, debug=True)
