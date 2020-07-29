@@ -1,10 +1,11 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask_socketio import SocketIO, join_room, leave_room, close_room, send
 # close_room - might be required if your're using dynamic number of rooms
 
 
 # Initialize Flask-SocketIO
 app = Flask(__name__)
+app.config["SECRET_KEY"] = "adfd4-lkdf5-636lk-fglkj"  # Used for signing the session cookies
 socketio = SocketIO(app)
 ROOMS = ["General", "News", "Games"]
 
@@ -25,6 +26,16 @@ def connect_new_client(data):
     msg = data["msg"]
     room = data["room"]
     send({"username": username, "msg": msg},  callback=client_callback, room=room)
+
+
+@socketio.on("connect")
+def connect():
+    print(f">>>> connection info: {{namespace: {request.namespace}, sid: {request.sid} }}")
+
+
+@socketio.on("disconnect")
+def disconnect():
+    print(f">>>> disconnect info: {{namespace: {request.namespace}, sid: {request.sid} }}")
 
 
 @socketio.on("join")
