@@ -1,6 +1,4 @@
 import socket
-import select
-import sys
 from threading import Thread
 
 # *** Might be useful later
@@ -12,8 +10,6 @@ from threading import Thread
 BUFSIZE = 1024
 # Local host name
 HOST = socket.gethostname()
-# Local host ip
-IP = socket.gethostbyname(HOST)
 PORT = 8081
 # Maximum number of connections open simultaneously by the server
 CONNECTION_LIM = 100
@@ -21,9 +17,10 @@ CONNECTION_LIM = 100
 QUIT = "{q}"
 
 class ChatRoomServer(Thread):
-    def __init__(self, ip=IP, port=PORT, connection_lim=CONNECTION_LIM, name="SERVER"):
+    def __init__(self, host=HOST, port=PORT, connection_lim=CONNECTION_LIM, name="SERVER"):
         super().__init__()
-        self.ip = ip
+        self.ip = None
+        self.host = host
         self.port = port
         self.connection_lim = connection_lim
         self.socket = None
@@ -38,6 +35,9 @@ class ChatRoomServer(Thread):
 
     def _init_socket(self):
         try:
+            # Local host ip
+            self.ip = socket.gethostbyname(self.host)
+
             # AF_INET - iPv4 (Internet address family)
             # SOCK_STREAM - TCP (socket type)
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -46,7 +46,7 @@ class ChatRoomServer(Thread):
             # SO_REUSEADDR - whether bind should permit reuse of local socket
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-            # Bind the server socket to the local IP at the specified port
+            # Bind the server socket to the host at the specified port
             self.socket.bind((self.ip, self.port))
             # Listen to maximum of connection_lim active connections
             self.socket.listen(self.connection_lim)
@@ -56,7 +56,7 @@ class ChatRoomServer(Thread):
             raise RuntimeError(f"> Problem with socket initialization: {err.strerror}")
 
     def run(self):
-        print(f"> Your chat room [{self.name}] is up and running @ {self.ip}:{self.port}...\nType '{QUIT}' if you want to quit.")
+        print(f"> Your chat room [{self.name}] is up and running @ {self.ip}:{self.port} ({self.host})...\nType '{QUIT}' if you want to quit.")
         try:
             # Accept new connections to the room
             while True:

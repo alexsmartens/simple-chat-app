@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Simple Chat App</title>
+
+    <!-- External sources -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+          integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css">
+    <!-- Custom styles -->
+    <style>
+        .btn.btn-primary[disabled] {
+            background-color: #cccccc;
+            border: none;
+            color: black;
+        }
+        div.chat_msg {
+        /*background-color: #ddd;*/
+        padding: 5px 10px;
+        border-radius: 10px;
+        color: #555;
+        margin-bottom: 5px;
+      }
+    </style>
+
+</head>
+<body>
+    <div class="container-sm">
+        <!-- Top -->
+        <div class="text-center shadow-sm p-3 mb-4 bg-white rounded">
+            <h4>Simple Chat App</h4>
+        </div>
+
+        <nav class="navbar navbar-expand-sm navbar-light shadow-sm p-3 mb-5 rounded" style="background-color: #e3f2fd;">
+          <a class="navbar-brand" style="cursor: default">Rooms</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav">
+                {% for room in rooms %}
+                    <li class="nav-item">
+                        <a class="select-room btn nav-link" id="nav-room-{{room}}"
+                           onclick="navigate2NewRoom(this.innerHTML)">{{room}}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+          </div>
+        </nav>
+
+
+        <!-- Body -->
+        <div class="row d-flex align-items-start">
+            <!-- Col 1 -->
+            <div class="col-sm-3 > shadow-sm p-3 mb-5 bg-white rounded">
+                <!-- (1) Username -->
+                <form id="noname_form">
+                    <label>Username</label>
+                    <div class="input-group mb-3">
+                        <input id="noname_input-username" type="text" class="username form-control" aria-label="Username">
+                        <div class="input-group-append">
+                            <button id="noname_btn-log-in" class="btn btn-primary" type="submit">
+                                Log in
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- (2) Message -->
+                <label>Message</label>
+                <div class="input-group mb-3">
+                    <textarea id="registered_input-msg" class="msg form-control" disabled></textarea>
+                </div>
+
+                <!-- (3) Message -->
+                <button id="registered_btn_send" type="button" class="btn btn-primary" onclick="send_msg()" disabled>
+                    Send<i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+
+            <!-- Col 2 -->
+            <div class="col-sm-1"></div>
+
+            <!-- Col 3-->
+            <div class="col-sm-8 shadow p-3 mb-5 bg-white rounded" style="min-height:265px !important">
+                <div id="chat">
+                    <div class="msg-wrapper"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--  Bootstrap prerequisites -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
+            integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+            integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
+            integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+
+
+    <!-- Functions -->
+    <script>
+        let username = "",
+            currentRoomName = "",
+            socket = io.connect(window.location.href),
+            noMsgHtml = "<h1 id=\"no-msg-boilerplate\" style=\"color: #ccc\">No New Messages </h1>";
+        
+        // On first connection
+        socket.on("connect", function () {
+            // Select default room
+            navigate2NewRoom("{{rooms[0]}}");
+        });
+        
+        // OnLoginClicked function
+        $("#noname_form").on("submit", function(e) {
+            e.preventDefault()
+            username = $("input.username").val();
+            if (username.length) {
+                $("[id^=noname]").prop("disabled", true);
+                $("[id^=registered]").removeAttr('disabled');
+
+                joinRoom(currentRoomName);
+            };
+        });
+        // OnSendMessageClicked function
+        function send_msg() {
+            let msg_element = $("textarea.msg");
+            if (msg_element.val().length) {
+                let msg2server = {
+                    username: username,
+                    msg: msg_element.val(),
+                    room: currentRoomName,
+                };
+                socket.emit("server_receive", msg2server);
+                // Empty message field
+                msg_element.val("").focus();
+            };
+        };
+
+        // Receive a message
+        socket.on("message", function (msg2client, callback) {
+            if (typeof msg2client.msg == "string"){
+                // Clean up the initial message
+                if ($("#no-msg-boilerplate").length == 1)
+                    $("#no-msg-boilerplate").remove();
+
+                // Message content and style
+                let msg_inf = {
+                    bg_type: msg2client.username === username ? "bg-primary " : msg2client.username ? "bg-secondary " : "bg-white ",
+                    style: msg2client.username === username ? "margin-left: 20%; " : "margin-right:20%; ",
+                    font: msg2client.username === username ? "" : msg2client.username ? "" : "font-italic ",
+                    text_color: msg2client.username ? "text-white ": "text-dark ",
+                    username: msg2client.username ? "<b>" + msg2client.username + "</b> ": "",
+                    msg: msg2client.msg,
+                }
+                // Post a new message
+                $("div.msg-wrapper").append(
+                    "<div class='chat_msg " + msg_inf.bg_type + msg_inf.font + msg_inf.text_color + "' style='" + msg_inf.style + "'>" +
+                         msg_inf.username + msg_inf.msg +
+                    "</div>"
+                );
+            } else
+                console.error("Received message has unexpected content");
+
+            // Call back to the server (just for testing)
+            if (callback)
+                callback({
+                    username: username,
+                    new_info: "info",
+                });
+        });
+
+        // Room navigation
+        function navigate2NewRoom (newRoomName) {
+            let oldRoomName = currentRoomName.length ? currentRoomName : "";
+            if (newRoomName == currentRoomName)
+                    {}
+            else {
+                let oldRoomButton = $(`#nav-room-${oldRoomName}`),
+                    newRoomButton = $(`#nav-room-${newRoomName}`);
+                // Clean up old messages
+                if ($("#no-msg-boilerplate").length == 1)
+                    {}
+                else {
+                    $("div.chat_msg").remove();
+                    $("div.msg-wrapper").append(noMsgHtml);
+                };
+                // Update room selection on the nav bar
+                if (oldRoomButton.length === 1)
+                    $(oldRoomButton).parent()[0].className = "nav-item";
+                $(newRoomButton).parent()[0].className = "nav-item active";
+                currentRoomName = newRoomName;
+                if (username.length) {
+                    leaveRoom(oldRoomName);
+                    joinRoom(newRoomName);
+                };
+            };
+        };
+        // Join room
+        function joinRoom(roomName) {
+
+            // Join room
+            socket.emit(
+                "join",
+                {
+                    "username": username,
+                    "room": roomName,
+                }
+            );
+        };
+        // Leave room
+        function leaveRoom(roomName) {
+            socket.emit(
+                "leave",
+                {
+                    "username": username,
+                    "room": roomName,
+                }
+            );
+        };
+    </script>
+
+</body>
+</html>
