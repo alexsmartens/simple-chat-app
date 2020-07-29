@@ -146,16 +146,29 @@
 
         // Receive a message
         socket.on("message", function (msg2client, callback) {
-            if (typeof msg2client.username == "string" && typeof msg2client.msg == "string") {
+            if (typeof msg2client.msg == "string"){
                 // Clean up the initial message
                 if ($("#no-msg-boilerplate").length == 1)
                     $("#no-msg-boilerplate").remove();
+
+                // Message content and style
+                let msg_inf = {
+                    bg_type: msg2client.username === username ? "bg-primary " : msg2client.username ? "bg-secondary " : "bg-white ",
+                    style: msg2client.username === username ? "margin-left: 20%; " : "margin-right:20%; ",
+                    font: msg2client.username === username ? "" : msg2client.username ? "" : "font-italic ",
+                    text_color: msg2client.username ? "text-white ": "text-dark ",
+                    username: msg2client.username ? "<b>" + msg2client.username + "</b> ": "",
+                    msg: msg2client.msg,
+                }
                 // Post a new message
                 $("div.msg-wrapper").append(
-                    "<div class='chat_msg " + (msg2client.username === username ? "bg-primary" : "bg-secondary") + " text-white'><b>"
-                    + msg2client.username + "</b> " + msg2client.msg + "</div>"
+                    "<div class='chat_msg " + msg_inf.bg_type + msg_inf.font + msg_inf.text_color + "' style='" + msg_inf.style + "'>" +
+                         msg_inf.username + msg_inf.msg +
+                    "</div>"
                 );
-            };
+            } else
+                console.error("Received message has unexpected content");
+
             // Call back to the server (just for testing)
             if (callback)
                 callback({
