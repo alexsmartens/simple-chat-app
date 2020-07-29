@@ -30,9 +30,27 @@
 <body>
     <div class="container-sm">
         <!-- Top -->
-        <div class="text-center shadow-sm p-3 mb-5 bg-white rounded">
+        <div class="text-center shadow-sm p-3 mb-4 bg-white rounded">
             <h4>Simple Chat App</h4>
         </div>
+
+        <nav class="navbar navbar-expand-sm navbar-light shadow-sm p-3 mb-5 rounded" style="background-color: #e3f2fd;">
+          <a class="navbar-brand" style="cursor: default">Rooms</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav">
+                {% for room in rooms %}
+                    <li class="nav-item">
+                        <a class="select-room btn nav-link" id="nav-room-{{ room|title }}">{{room}}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+          </div>
+        </nav>
+
 
         <!-- Body -->
         <div class="row d-flex align-items-start">
@@ -89,10 +107,11 @@
 
     <!-- Functions -->
     <script>
-        let username = ""
-        let socket = io.connect(window.location.href)
+        let username = "",
+            currenRoom = "",
+            socket = io.connect(window.location.href);
 
-        // Button functions
+        // OnLoginClicked function
         $("#noname_form").on("submit", function(e) {
             e.preventDefault()
             username = $("input.username").val();
@@ -103,9 +122,11 @@
                 let msg2server = {
                     username: username,
                 };
-                socket.emit("server_receive", msg2server);
+                // socket.emit("server_receive", msg2server);
+                socket.emit("join", {"username": username, "room": "{{rooms[0]}}" });
             };
         });
+        // OnSendMessageClicked function
         function send_msg() {
             let msg_element = $("textarea.msg");
             if (msg_element.val().length) {
@@ -124,7 +145,10 @@
             let msg2server = {
                 data: "new client"
             };
-            socket.emit("server_receive", msg2server);
+            // socket.emit("server_receive", msg2server);
+
+            // Join room the first room
+            selectCurrentRoom("{{rooms[0]}}")
         });
 
         // Receive a message
@@ -145,6 +169,33 @@
                 new_info: "info",
             });
         });
+
+        // Room selection
+        function selectCurrentRoom (newRoomName) {
+            let currentRoomButton = $(`#nav-room-${currenRoom}`),
+                newRoomButton = $(`#nav-room-${newRoomName}`);
+
+            // console.log()
+            if (currentRoomButton.length === 1)
+                $(currentRoomButton).parent()[0].className = "nav-item"
+            $(newRoomButton).parent()[0].className = "nav-item active"
+            currenRoom = newRoomName
+        }
+        let roomButtons = $(".select-room")
+        roomButtons.each( idx => {
+            let roomButton = roomButtons[idx];
+            roomButton.onclick = () => {
+                if (roomButton.innerHTML == currenRoom) {
+                }
+                else {
+                     selectCurrentRoom (roomButton.innerHTML)
+
+
+
+                }
+
+            }
+        })
     </script>
 
 </body>
