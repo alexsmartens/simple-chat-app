@@ -44,7 +44,8 @@
             <ul class="navbar-nav">
                 {% for room in rooms %}
                     <li class="nav-item">
-                        <a class="select-room btn nav-link" id="nav-room-{{ room|title }}">{{room}}</a>
+                        <a class="select-room btn nav-link" id="nav-room-{{ room|title }}"
+                           onclick="navigate2NewRoom(this.innerHTML)">{{room}}</a>
                     </li>
                 {% endfor %}
             </ul>
@@ -76,7 +77,7 @@
                 </div>
 
                 <!-- (3) Message -->
-                <button id="registered_btn_send" type="button" class="btn btn-primary"  onclick="send_msg()" disabled>
+                <button id="registered_btn_send" type="button" class="btn btn-primary" onclick="send_msg()" disabled>
                     Send<i class="fas fa-paper-plane"></i>
                 </button>
             </div>
@@ -108,9 +109,20 @@
     <!-- Functions -->
     <script>
         let username = "",
-            currenRoom = "",
+            currentRoomName = "",
             socket = io.connect(window.location.href);
+        
+        // On first connection
+        socket.on("connect", function () {
+            let msg2server = {
+                data: "new client"
+            };
+            // socket.emit("server_receive", msg2server);
 
+            // Select default room
+            navigate2NewRoom("{{rooms[0]}}");
+        });
+        
         // OnLoginClicked function
         $("#noname_form").on("submit", function(e) {
             e.preventDefault()
@@ -122,8 +134,7 @@
                 let msg2server = {
                     username: username,
                 };
-                // socket.emit("server_receive", msg2server);
-                socket.emit("join", {"username": username, "room": "{{rooms[0]}}" });
+                joinRoom(currentRoomName);
             };
         });
         // OnSendMessageClicked function
@@ -139,17 +150,6 @@
                 msg_element.val("").focus();
             };
         };
-
-        // On first connection
-        socket.on("connect", function () {
-            let msg2server = {
-                data: "new client"
-            };
-            // socket.emit("server_receive", msg2server);
-
-            // Join room the first room
-            selectCurrentRoom("{{rooms[0]}}")
-        });
 
         // Receive a message
         socket.on("client_receive", function (msg2client, callback) {
@@ -170,32 +170,34 @@
             });
         });
 
-        // Room selection
-        function selectCurrentRoom (newRoomName) {
-            let currentRoomButton = $(`#nav-room-${currenRoom}`),
-                newRoomButton = $(`#nav-room-${newRoomName}`);
+        // Room navigation
+        function navigate2NewRoom (newRoomName) {
+            let oldRoomName = currentRoomName.length ? currentRoomName : "";
+            if (newRoomName == currentRoomName)
+                    {}
+            else {
+                let oldRoomButton = $(`#nav-room-${oldRoomName}`),
+                    newRoomButton = $(`#nav-room-${newRoomName}`);
+                // Update room selection on the nav bar
+                if (oldRoomButton.length === 1)
+                    $(oldRoomButton).parent()[0].className = "nav-item";
+                $(newRoomButton).parent()[0].className = "nav-item active";
+                currentRoomName = newRoomName;
+                if (username.length) {
+                    leaveRoom(oldRoomName);
+                    joinRoom(newRoomName);
+                };
+            };
+        };
+        // Join room
+        function joinRoom(roomName) {
 
-            // console.log()
-            if (currentRoomButton.length === 1)
-                $(currentRoomButton).parent()[0].className = "nav-item"
-            $(newRoomButton).parent()[0].className = "nav-item active"
-            currenRoom = newRoomName
         }
-        let roomButtons = $(".select-room")
-        roomButtons.each( idx => {
-            let roomButton = roomButtons[idx];
-            roomButton.onclick = () => {
-                if (roomButton.innerHTML == currenRoom) {
-                }
-                else {
-                     selectCurrentRoom (roomButton.innerHTML)
-
-
-
-                }
-
-            }
-        })
+        // Leave room
+        function leaveRoom(roomName) {
+            
+        }
+        
     </script>
 
 </body>
