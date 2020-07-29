@@ -44,7 +44,7 @@
             <ul class="navbar-nav">
                 {% for room in rooms %}
                     <li class="nav-item">
-                        <a class="select-room btn nav-link" id="nav-room-{{ room|title }}"
+                        <a class="select-room btn nav-link" id="nav-room-{{room}}"
                            onclick="navigate2NewRoom(this.innerHTML)">{{room}}</a>
                     </li>
                 {% endfor %}
@@ -88,7 +88,6 @@
             <!-- Col 3-->
             <div class="col-sm-8 shadow p-3 mb-5 bg-white rounded" style="min-height:265px !important">
                 <div id="chat">
-                    <h1 id="no-msg-boilerplate" style="color: #ccc">No New Messages </h1>
                     <div class="msg-wrapper"></div>
                 </div>
             </div>
@@ -110,15 +109,11 @@
     <script>
         let username = "",
             currentRoomName = "",
-            socket = io.connect(window.location.href);
+            socket = io.connect(window.location.href),
+            noMsgHtml = "<h1 id=\"no-msg-boilerplate\" style=\"color: #ccc\">No New Messages </h1>";
         
         // On first connection
         socket.on("connect", function () {
-            let msg2server = {
-                data: "new client"
-            };
-            // socket.emit("server_receive", msg2server);
-
             // Select default room
             navigate2NewRoom("{{rooms[0]}}");
         });
@@ -131,9 +126,6 @@
                 $("[id^=noname]").prop("disabled", true);
                 $("[id^=registered]").removeAttr('disabled');
 
-                let msg2server = {
-                    username: username,
-                };
                 joinRoom(currentRoomName);
             };
         });
@@ -144,6 +136,7 @@
                 let msg2server = {
                     username: username,
                     msg: msg_element.val(),
+                    room: currentRoomName,
                 };
                 socket.emit("server_receive", msg2server);
                 // Empty message field
@@ -152,7 +145,7 @@
         };
 
         // Receive a message
-        socket.on("client_receive", function (msg2client, callback) {
+        socket.on("message", function (msg2client, callback) {
             if (typeof msg2client.username == "string" && typeof msg2client.msg == "string") {
                 // Clean up the initial message
                 if ($("#no-msg-boilerplate").length == 1)
@@ -164,10 +157,11 @@
                 );
             };
             // Call back to the server (just for testing)
-            callback({
-                username: username,
-                new_info: "info",
-            });
+            if (callback)
+                callback({
+                    username: username,
+                    new_info: "info",
+                });
         });
 
         // Room navigation
@@ -178,6 +172,13 @@
             else {
                 let oldRoomButton = $(`#nav-room-${oldRoomName}`),
                     newRoomButton = $(`#nav-room-${newRoomName}`);
+                // Clean up old messages
+                if ($("#no-msg-boilerplate").length == 1)
+                    {}
+                else {
+                    $("div.chat_msg").remove();
+                    $("div.msg-wrapper").append(noMsgHtml);
+                };
                 // Update room selection on the nav bar
                 if (oldRoomButton.length === 1)
                     $(oldRoomButton).parent()[0].className = "nav-item";
@@ -192,12 +193,25 @@
         // Join room
         function joinRoom(roomName) {
 
-        }
+            // Join room
+            socket.emit(
+                "join",
+                {
+                    "username": username,
+                    "room": roomName,
+                }
+            );
+        };
         // Leave room
         function leaveRoom(roomName) {
-            
-        }
-        
+            socket.emit(
+                "leave",
+                {
+                    "username": username,
+                    "room": roomName,
+                }
+            );
+        };
     </script>
 
 </body>
