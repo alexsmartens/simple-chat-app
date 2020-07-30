@@ -1,12 +1,17 @@
+import os
+import redis
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, join_room, leave_room, close_room, send
 # close_room - might be required if your're using dynamic number of rooms
+import eventlet
+eventlet.monkey_patch()
 
 
 # Initialize Flask-SocketIO
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "adfd4-lkdf5-636lk-fglkj"  # Used for signing the session cookies
-socketio = SocketIO(app)
+REDIS_URL = os.environ.get("REDIS_URL")
+socketio = SocketIO(app, message_queue=REDIS_URL)
 ROOMS = ["General", "News", "Games"]
 
 
