@@ -35,11 +35,6 @@ http {
 
     root /app/public; # path to your app
 
-    location / {
-        include proxy_params;
-        proxy_pass http://127.0.0.1:5000;
-    }
-
     location /socket.io {
         include proxy_params;
         proxy_http_version 1.1;
