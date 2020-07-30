@@ -4,7 +4,7 @@ from flask import Flask, render_template, request
 from flask_socketio import SocketIO, join_room, leave_room, close_room, send
 # close_room - might be required if your're using dynamic number of rooms
 import eventlet
-# eventlet.monkey_patch()
+eventlet.monkey_patch()
 
 
 # Initialize Flask-SocketIO
