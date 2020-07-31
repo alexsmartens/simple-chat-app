@@ -1,22 +1,30 @@
+# Recommended by Flask-SocketIO: https://flask-socketio.readthedocs.io/en/latest/#using-nginx-as-a-websocket-reverse-proxy
+import eventlet
+eventlet.monkey_patch()
+
 import os
+import sys
 import json
 import redis
+import logging
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, join_room, leave_room, close_room
 # close_room - might be required if your"re using dynamic number of rooms
-import eventlet
-eventlet.monkey_patch()
 
 
 # Initialize the app
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "adfd4-lkdf5-636lk-fglkj"  # Used for signing the session cookies
+# Configure logger
+gunicorn_logger = logging.getLogger('gunicorn.error')
+app.logger.handlers = gunicorn_logger.handlers
+app.logger.setLevel(gunicorn_logger.level)
+# Add Flask-SocketIO to the Flask application
 socketio = SocketIO(app)
-
+# Configure redis
 REDIS_CHAN = "chat"
 REDIS_URL = os.environ.get("REDIS_URL")
 redis = redis.from_url(REDIS_URL, decode_responses=True)
-
 
 CHAT_ROOM_NAMES = ["General", "News", "Games"]
 
@@ -39,8 +47,8 @@ class ChatBackend:
             del data["room"]
             socketio.send(data, room=room)
         else:
-            print(f"Incorrect message format was read from redis: {data}. A correct message should have "
-                            f"'room' and 'msg' keys")
+            app.logger.warning(f"Incorrect message format was read from redis: {data}. A correct message should have "
+                               f"'room' and 'msg' keys")
 
     def run(self):
         """Listens for new messages in Redis, and sends them to clients."""
@@ -75,18 +83,18 @@ def server_receive(data):
             "msg": data["msg"],
         }))
     else:
-        print(f"Incorrect message format was received form the client: {data}. A correct message should have "
-                        f"'room', 'username' and 'msg' keys")
+        app.logger.warning(f"Incorrect message format was received form the client: {data}. A correct message should "
+                           f"have 'room', 'username' and 'msg' keys")
 
 
 @socketio.on("connect")
 def connect():
-    print(f"connect info: {{namespace: {request.namespace}, sid: {request.sid} }}")
+    app.logger.info(f"connect info: {{namespace: {request.namespace}, sid: {request.sid} }}")
 
 
 @socketio.on("disconnect")
 def disconnect():
-    print(f"disconnect info: {{namespace: {request.namespace}, sid: {request.sid} }}")
+    app.logger.info(f"disconnect info: {{namespace: {request.namespace}, sid: {request.sid} }}")
 
 
 @socketio.on("join")
@@ -103,8 +111,8 @@ def join(data):
             "msg": data["username"] + " has joined the " + data["room"] + " room.",
         }))
     else:
-        print(f"Incorrect message format was received form the client: {data}. A correct message should have "
-                        f"'room' and 'username' keys")
+        app.logger.warning(f"Incorrect message format was received form the client: {data}. A correct message should "
+                           f"have 'room' and 'username' keys")
 
 
 @socketio.on("leave")
@@ -121,9 +129,9 @@ def leave(data):
             "msg": data["username"] + " has left the " + data["room"] + " room.",
         }))
     else:
-        print(f"Incorrect message format was received form the client: {data}. A correct message should have "
-                        f"'room' and 'username' keys")
+        app.logger.warning(f"Incorrect message format was received form the client: {data}. A correct message should "
+                           f"have 'room' and 'username' keys")
 
 
 if __name__ == "__main__":
-  socketio.run(app, debug=True)
+    socketio.run(app, debug=True)
