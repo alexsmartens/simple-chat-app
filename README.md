@@ -1,4 +1,4 @@
-# Scalable Multi-Room Chat App
+# Simple Multi-Room Chat App
 ## Heroku Flask-SocketIO Redis Eventlet Gunicorn
  
 Check out this [project on heroku](https://smart-chat-room.herokuapp.com/).
