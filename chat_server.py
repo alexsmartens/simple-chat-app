@@ -33,11 +33,9 @@ class RegisteredUserSessionTracker(dict):
         eventlet.spawn(self._publish, "joined", user_info)
         super().__setitem__(session_id, user_info)
 
-
     def __delitem__(self, session_id):
         eventlet.spawn(self._publish, "left", self.get(session_id).copy())
         super().__delitem__(session_id)
-
 
     @staticmethod
     def _publish(action_str, user_info):
@@ -82,6 +80,7 @@ class ChatBackend:
 chat = ChatBackend()
 chat.start()
 user_tracker = RegisteredUserSessionTracker()
+username_tracker = {}
 
 
 @app.route("/")
