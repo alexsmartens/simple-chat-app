@@ -1,7 +1,9 @@
-# HQ-Trivia II Game
+# Simple Multi-Room Chat App
 ## Heroku Flask-SocketIO Redis Eventlet Gunicorn
  
 Check out this [project on heroku](https://smart-chat-room.herokuapp.com/).
+
+![alt text](https://github.com/alexsmartens/simple-chat-room/blob/dev/ScreenShotChat.JPG)
 
 ### Running locally
 
