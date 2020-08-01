@@ -3,7 +3,7 @@
  
 Check out this [project on heroku](https://smart-chat-room.herokuapp.com/).
 
-![alt text](https://github.com/alexsmartens/simple-chat-room/blob/dev/ScreenShotChat.png)
+![alt text](https://github.com/alexsmartens/simple-chat-room/blob/dev/ScreenShotChat.JPG)
 
 ### Running locally
 
