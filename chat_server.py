@@ -3,7 +3,6 @@ import eventlet
 eventlet.monkey_patch()
 
 import os
-import sys
 import json
 import redis
 import logging
@@ -27,6 +26,24 @@ REDIS_URL = os.environ.get("REDIS_URL")
 redis = redis.from_url(REDIS_URL, decode_responses=True)
 
 CHAT_ROOM_NAMES = ["General", "News", "Games"]
+
+
+class RegisteredUserSessionTracker(dict):
+    def __setitem__(self, session_id, user_info):
+        eventlet.spawn(self._publish, "joined", user_info)
+        super().__setitem__(session_id, user_info)
+
+    def __delitem__(self, session_id):
+        eventlet.spawn(self._publish, "left", self.get(session_id).copy())
+        super().__delitem__(session_id)
+
+    @staticmethod
+    def _publish(action_str, user_info):
+        # Broadcast that the new user has joined/left the group
+        redis.publish(REDIS_CHAN, json.dumps({
+            "room": user_info["room"],
+            "msg": f"{user_info['username']} has {action_str} the {user_info['room']} room.",
+        }))
 
 
 class ChatBackend:
@@ -62,6 +79,8 @@ class ChatBackend:
 
 chat = ChatBackend()
 chat.start()
+user_tracker = RegisteredUserSessionTracker()
+username_tracker = {}
 
 
 @app.route("/")
@@ -94,6 +113,11 @@ def connect():
 
 @socketio.on("disconnect")
 def disconnect():
+    # User automatically lives the group on disconnection, but we still have to remove his/her registration if we want
+    # to track user sessions
+    # Remove user registration if the user is registered
+    if request.sid in user_tracker:
+        del user_tracker[request.sid]
     app.logger.info(f"disconnect info: {{namespace: {request.namespace}, sid: {request.sid} }}")
 
 
@@ -103,13 +127,10 @@ def join(data):
     if "room" in data and \
         "username" in data:
 
+        # Add the new user to the specified room
         join_room(data["room"])
-        # Broadcast that new user has joined
-        redis.publish(REDIS_CHAN, json.dumps({
-            "room": data["room"],
-            # "sid": request.sid,
-            "msg": data["username"] + " has joined the " + data["room"] + " room.",
-        }))
+        # Register the new user
+        user_tracker[request.sid] = {"username":  data["username"], "room": data["room"]}
     else:
         app.logger.warning(f"Incorrect message format was received form the client: {data}. A correct message should "
                            f"have 'room' and 'username' keys")
@@ -121,13 +142,10 @@ def leave(data):
     if "room" in data and \
         "username" in data:
 
+        # Remove the user from the specified room
         leave_room(data["room"])
-        # Broadcast that new user has joined
-        redis.publish(REDIS_CHAN, json.dumps({
-            "room": data["room"],
-            # "sid": request.sid,
-            "msg": data["username"] + " has left the " + data["room"] + " room.",
-        }))
+        # Remove user registration
+        del user_tracker[request.sid]
     else:
         app.logger.warning(f"Incorrect message format was received form the client: {data}. A correct message should "
                            f"have 'room' and 'username' keys")
